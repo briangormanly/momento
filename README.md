@@ -79,7 +79,100 @@ For production, use a reliable email service provider:
 
 - **Mailgun, Postmark, etc.**: Follow their SMTP configuration docs
 
-#### Option B: Self-Hosted SMTP Server (Linux)
+#### Option B: Local Testing (macOS/Development)
+
+For local development and testing on macOS (Apple Silicon or Intel):
+
+**Using MailHog (Recommended for Testing)**
+
+MailHog is a local SMTP server with a web UI that captures all emails - perfect for development.
+
+**Install MailHog:**
+
+```bash
+# Using Homebrew (recommended)
+brew install mailhog
+
+# Or download binary from GitHub
+# https://github.com/mailhog/MailHog/releases
+```
+
+**Start MailHog:**
+
+```bash
+# Start MailHog (runs on ports 1025 for SMTP, 8025 for web UI)
+mailhog
+```
+
+MailHog will start and be available at:
+- **SMTP Server**: `localhost:1025` (no authentication needed)
+- **Web UI**: http://localhost:8025 (view all captured emails)
+
+**Configure Application:**
+
+Add to your `.env` file:
+```env
+MAIL_SERVER=localhost
+MAIL_PORT=1025
+MAIL_STARTTLS=False
+MAIL_SSL_TLS=False
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM=noreply@localhost
+```
+
+**Alternative: Using Docker**
+
+If you prefer Docker:
+```bash
+# Run MailHog in Docker
+docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
+
+# Or use docker-compose
+```
+
+**Alternative: macOS Built-in Postfix**
+
+macOS includes Postfix, but it's disabled by default. To enable:
+
+```bash
+# Enable Postfix
+sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.postfix.master.plist
+
+# Check status
+sudo postfix status
+
+# Configure for local delivery only
+sudo nano /etc/postfix/main.cf
+```
+
+Add/modify:
+```conf
+inet_interfaces = loopback-only
+mydestination = $myhostname, localhost.$mydomain, localhost
+```
+
+Restart:
+```bash
+sudo postfix reload
+```
+
+Then configure your app:
+```env
+MAIL_SERVER=localhost
+MAIL_PORT=25
+MAIL_STARTTLS=False
+MAIL_SSL_TLS=False
+MAIL_USERNAME=
+MAIL_PASSWORD=
+```
+
+**View Emails:**
+
+- **MailHog**: Open http://localhost:8025 in your browser
+- **Postfix**: Check `/var/mail/yourusername` or use `mail` command
+
+#### Option C: Self-Hosted SMTP Server (Linux)
 
 For development or self-hosted deployments on Linux servers:
 
