@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+
+# Documentation Guidelines
+
+## Documentation Policy
+
+- **Only create documentation that is important enough to be written to the README.md**
+- **Do NOT create new markdown files for every code addition or feature**
+- **Do NOT create separate documentation files unless explicitly requested**
+
+When generating code, documentation should be:
+- Minimal and purposeful
+- Added to README.md only when it provides significant value to users
+- Focused on setup, configuration, and critical usage information
+- Avoided for routine code additions, minor features, or internal implementation details
+
+Code should be self-documenting through clear naming and inline comments where necessary, rather than generating separate documentation files.
