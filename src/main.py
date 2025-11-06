@@ -25,7 +25,7 @@ from src.exceptions.handlers import (
 async def lifespan(app: FastAPI):
     """
     Application lifespan events for startup and shutdown.
-    Manages Neo4j connection lifecycle.
+    Manages Neo4j connection lifecycle and cleanup tasks.
     """
     # Startup: Connect to Neo4j
     settings = get_settings()
@@ -38,6 +38,15 @@ async def lifespan(app: FastAPI):
         print("✓ Neo4j connection established successfully")
     else:
         print("✗ Warning: Neo4j connection verification failed")
+    
+    # Cleanup expired email verifications on startup
+    from src.database.queries import cleanup_expired_verifications
+    try:
+        deleted_count = cleanup_expired_verifications()
+        if deleted_count > 0:
+            print(f"✓ Cleaned up {deleted_count} expired email verification(s)")
+    except Exception as e:
+        print(f"Warning: Failed to cleanup expired verifications: {e}")
     
     yield
     

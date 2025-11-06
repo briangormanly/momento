@@ -7,6 +7,7 @@ alwaysApply: true
 ## Documentation Policy
 
 - **Only create documentation that is important enough to be written to the README.md**
+- **You ARE allow to edit the .env and .env.example files in the project to add env variables**
 - **Do NOT create new markdown files for every code addition or feature**
 - **Do NOT create separate documentation files unless explicitly requested**
 

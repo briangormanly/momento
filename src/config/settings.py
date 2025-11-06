@@ -21,6 +21,19 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 15
     jwt_refresh_token_expire_days: int = 7
     
+    # Email Verification Configuration
+    email_verification_expire_hours: int = 24
+    
+    # Email/SMTP Configuration
+    mail_username: str
+    mail_password: str
+    mail_from: str
+    mail_port: int = 587
+    mail_server: str
+    mail_starttls: bool = True
+    mail_ssl_tls: bool = False
+    mail_from_name: str = "Momento"
+    
     # Application Configuration
     app_name: str = "Momento"
     app_version: str = "0.1.0"

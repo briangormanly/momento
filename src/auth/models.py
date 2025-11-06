@@ -89,3 +89,58 @@ class User(BaseModel):
         """Check if user has any of the specified roles."""
         return any(role in self.roles for role in roles)
 
+
+class RegisterRequest(BaseModel):
+    """Request model for user registration."""
+    email: EmailStr = Field(..., description="User's email address")
+    password: str = Field(..., min_length=8, description="User's password (minimum 8 characters)")
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "email": "newuser@example.com",
+                    "password": "securepassword123"
+                }
+            ]
+        }
+    }
+
+
+class RegisterResponse(BaseModel):
+    """Response model for user registration."""
+    message: str = Field(..., description="Registration status message")
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "message": "Registration initiated. Please check your email to verify your account."
+                }
+            ]
+        }
+    }
+
+
+class VerifyEmailResponse(BaseModel):
+    """Response model for email verification."""
+    message: str = Field(..., description="Verification status message")
+    access_token: str = Field(..., description="JWT access token for API authentication")
+    refresh_token: str = Field(..., description="JWT refresh token for obtaining new access tokens")
+    token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
+    expires_in: int = Field(..., description="Access token expiration time in seconds")
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "message": "Email verified successfully. Your account has been created.",
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "token_type": "bearer",
+                    "expires_in": 900
+                }
+            ]
+        }
+    }
+

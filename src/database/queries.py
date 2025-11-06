@@ -3,6 +3,7 @@ Database query functions for user authentication.
 Handles interactions with Neo4j ApiCredentials nodes.
 """
 from typing import Optional, Dict, Any
+from datetime import datetime, timezone
 from neo4j import Driver
 from passlib.context import CryptContext
 
@@ -138,6 +139,223 @@ def create_user(email: str, password: str, roles: list = None, driver: Driver = 
             query,
             email=email,
             password=hashed_password,
+            roles=roles
+        )
+        record = result.single()
+        
+        return {
+            "email": record["email"],
+            "roles": record["roles"]
+        }
+
+
+def check_email_exists(email: str, driver: Driver = None) -> bool:
+    """
+    Check if an email address already exists in ApiCredentials.
+    
+    Args:
+        email: Email address to check
+        driver: Neo4j driver instance (optional)
+        
+    Returns:
+        True if email exists, False otherwise
+    """
+    if driver is None:
+        driver = get_neo4j_driver()
+    
+    query = """
+    MATCH (user:ApiCredentials {emailAddress: $email})
+    RETURN count(user) > 0 as exists
+    """
+    
+    with driver.session() as session:
+        result = session.run(query, email=email)
+        record = result.single()
+        return record["exists"] if record else False
+
+
+def create_email_verification(
+    email: str,
+    password_hash: str,
+    token: str,
+    expires_at: datetime,
+    driver: Driver = None
+) -> Dict[str, Any]:
+    """
+    Create a new EmailVerification node in Neo4j.
+    
+    Args:
+        email: User's email address
+        password_hash: Hashed password
+        token: Verification token
+        expires_at: Token expiration datetime
+        driver: Neo4j driver instance (optional)
+        
+    Returns:
+        Dictionary containing verification data
+    """
+    if driver is None:
+        driver = get_neo4j_driver()
+    
+    query = """
+    CREATE (verification:EmailVerification {
+        emailAddress: $email,
+        hashedPassword: $password_hash,
+        token: $token,
+        expiresAt: datetime($expires_at),
+        createdAt: datetime($created_at)
+    })
+    RETURN verification.emailAddress as email,
+           verification.token as token,
+           verification.expiresAt as expires_at
+    """
+    
+    with driver.session() as session:
+        result = session.run(
+            query,
+            email=email,
+            password_hash=password_hash,
+            token=token,
+            expires_at=expires_at.isoformat(),
+            created_at=datetime.now(timezone.utc).isoformat()
+        )
+        record = result.single()
+        
+        return {
+            "email": record["email"],
+            "token": record["token"],
+            "expires_at": record["expires_at"]
+        }
+
+
+def get_email_verification_by_token(token: str, driver: Driver = None) -> Optional[Dict[str, Any]]:
+    """
+    Retrieve email verification record by token.
+    
+    Args:
+        token: Verification token
+        driver: Neo4j driver instance (optional)
+        
+    Returns:
+        Dictionary containing verification data or None if not found
+    """
+    if driver is None:
+        driver = get_neo4j_driver()
+    
+    query = """
+    MATCH (verification:EmailVerification {token: $token})
+    WHERE verification.expiresAt > datetime()
+    RETURN verification.emailAddress as email,
+           verification.hashedPassword as password_hash,
+           verification.token as token,
+           verification.expiresAt as expires_at
+    """
+    
+    with driver.session() as session:
+        result = session.run(query, token=token)
+        record = result.single()
+        
+        if record:
+            return {
+                "email": record["email"],
+                "password_hash": record["password_hash"],
+                "token": record["token"],
+                "expires_at": record["expires_at"]
+            }
+        return None
+
+
+def delete_email_verification(token: str, driver: Driver = None) -> bool:
+    """
+    Delete an email verification record by token.
+    
+    Args:
+        token: Verification token
+        driver: Neo4j driver instance (optional)
+        
+    Returns:
+        True if deleted, False if not found
+    """
+    if driver is None:
+        driver = get_neo4j_driver()
+    
+    query = """
+    MATCH (verification:EmailVerification {token: $token})
+    DELETE verification
+    RETURN count(verification) as deleted_count
+    """
+    
+    with driver.session() as session:
+        result = session.run(query, token=token)
+        record = result.single()
+        return record["deleted_count"] > 0 if record else False
+
+
+def cleanup_expired_verifications(driver: Driver = None) -> int:
+    """
+    Delete all expired EmailVerification nodes.
+    
+    Args:
+        driver: Neo4j driver instance (optional)
+        
+    Returns:
+        Number of expired verifications deleted
+    """
+    if driver is None:
+        driver = get_neo4j_driver()
+    
+    query = """
+    MATCH (verification:EmailVerification)
+    WHERE verification.expiresAt <= datetime()
+    DELETE verification
+    RETURN count(verification) as deleted_count
+    """
+    
+    with driver.session() as session:
+        result = session.run(query)
+        record = result.single()
+        return record["deleted_count"] if record else 0
+
+
+def create_user_from_verification(
+    email: str,
+    password_hash: str,
+    roles: list = None,
+    driver: Driver = None
+) -> Dict[str, Any]:
+    """
+    Create a new ApiCredentials node using already-hashed password.
+    Used during email verification when password is already hashed.
+    
+    Args:
+        email: User's email address
+        password_hash: Already hashed password
+        roles: List of role strings (defaults to ["user"])
+        driver: Neo4j driver instance (optional)
+        
+    Returns:
+        Dictionary containing created user data
+    """
+    if driver is None:
+        driver = get_neo4j_driver()
+    
+    if roles is None:
+        roles = ["user"]
+    
+    query = """
+    CREATE (user:ApiCredentials {
+        emailAddress: $email,
+        password: $password_hash,
+        roles: $roles
+    })
+    RETURN user.emailAddress as email, user.roles as roles
+    """
+    
+    with driver.session() as session:
+        result = session.run(
+            query,
+            email=email,
+            password_hash=password_hash,
             roles=roles
         )
         record = result.single()
