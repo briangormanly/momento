@@ -4,6 +4,7 @@ Implements singleton pattern for database driver.
 """
 from neo4j import GraphDatabase, Driver
 from typing import Optional
+from contextlib import contextmanager
 from src.config.settings import get_settings
 
 
@@ -12,6 +13,7 @@ class Neo4jConnection:
     
     _instance: Optional['Neo4jConnection'] = None
     _driver: Optional[Driver] = None
+    _database: Optional[str] = None
     
     def __new__(cls):
         if cls._instance is None:
@@ -26,12 +28,14 @@ class Neo4jConnection:
                 settings.neo4j_uri,
                 auth=(settings.neo4j_username, settings.neo4j_password)
             )
+            self._database = settings.neo4j_database
     
     def close(self) -> None:
         """Close the Neo4j driver connection."""
         if self._driver is not None:
             self._driver.close()
             self._driver = None
+            self._database = None
     
     def get_driver(self) -> Driver:
         """
@@ -47,6 +51,28 @@ class Neo4jConnection:
         if self._driver is None:
             raise RuntimeError("Database connection not initialized. Call connect() first.")
         return self._driver
+
+    @contextmanager
+    def get_session(self):
+        """
+        Context manager that yields a Neo4j session configured with the database name.
+        Automatically uses the database specified in settings.
+        
+        Usage:
+            with neo4j_connection.get_session() as session:
+                result = session.run(query, params)
+        
+        Yields:
+            Neo4j Session instance configured with the database
+        """
+        if self._driver is None:
+            raise RuntimeError("Database connection not initialized. Call connect() first.")
+        
+        session = self._driver.session(database=self._database)
+        try:
+            yield session
+        finally:
+            session.close()
     
     def verify_connectivity(self) -> bool:
         """
@@ -77,4 +103,3 @@ def get_neo4j_driver() -> Driver:
         Neo4j Driver instance
     """
     return neo4j_connection.get_driver()
-

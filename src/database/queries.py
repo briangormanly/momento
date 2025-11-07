@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from neo4j import Driver
 from pwdlib import PasswordHash
 
-from src.database.connection import get_neo4j_driver
+from src.database.connection import get_neo4j_driver, neo4j_connection
+
 
 
 # Password hashing using bcrypt (or use PasswordHash.recommended() for Argon2)
@@ -65,7 +66,7 @@ def get_user_by_email(email: str, driver: Driver = None) -> Optional[Dict[str, A
            user.roles as roles
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(query, email=email)
         record = result.single()
         
@@ -137,7 +138,7 @@ def create_user(email: str, password: str, roles: list = None, driver: Driver = 
     RETURN user.emailAddress as email, user.roles as roles
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(
             query,
             email=email,
@@ -171,7 +172,7 @@ def check_email_exists(email: str, driver: Driver = None) -> bool:
     RETURN count(user) > 0 as exists
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(query, email=email)
         record = result.single()
         return record["exists"] if record else False
@@ -213,7 +214,7 @@ def create_email_verification(
            verification.expiresAt as expires_at
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(
             query,
             email=email,
@@ -254,7 +255,7 @@ def get_email_verification_by_token(token: str, driver: Driver = None) -> Option
            verification.expiresAt as expires_at
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(query, token=token)
         record = result.single()
         
@@ -288,7 +289,7 @@ def delete_email_verification(token: str, driver: Driver = None) -> bool:
     RETURN count(verification) as deleted_count
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(query, token=token)
         record = result.single()
         return record["deleted_count"] > 0 if record else False
@@ -314,7 +315,7 @@ def cleanup_expired_verifications(driver: Driver = None) -> int:
     RETURN count(verification) as deleted_count
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(query)
         record = result.single()
         return record["deleted_count"] if record else 0
@@ -354,7 +355,7 @@ def create_user_from_verification(
     RETURN user.emailAddress as email, user.roles as roles
     """
     
-    with driver.session() as session:
+    with neo4j_connection.get_session() as session:
         result = session.run(
             query,
             email=email,
