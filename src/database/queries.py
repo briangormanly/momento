@@ -5,13 +5,16 @@ Handles interactions with Neo4j ApiCredentials nodes.
 from typing import Optional, Dict, Any
 from datetime import datetime, timezone
 from neo4j import Driver
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 
 from src.database.connection import get_neo4j_driver
 
 
-# Password hashing context using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing using bcrypt (or use PasswordHash.recommended() for Argon2)
+pwd_hasher = PasswordHash.recommended()  # For Argon2 (recommended)
+# OR
+# from pwdlib.hashers.bcrypt import BcryptHasher
+# pwd_hasher = PasswordHash(BcryptHasher())  # For bcrypt (to maintain compatibility)
 
 
 def hash_password(password: str) -> str:
@@ -24,7 +27,7 @@ def hash_password(password: str) -> str:
     Returns:
         Hashed password string
     """
-    return pwd_context.hash(password)
+    return pwd_hasher.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -38,7 +41,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_hasher.verify(plain_password, hashed_password)
 
 
 def get_user_by_email(email: str, driver: Driver = None) -> Optional[Dict[str, Any]]:
