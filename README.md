@@ -79,179 +79,6 @@ For production, use a reliable email service provider:
 
 - **Mailgun, Postmark, etc.**: Follow their SMTP configuration docs
 
-#### Option B: Local Testing (macOS/Development)
-
-For local development and testing on macOS (Apple Silicon or Intel):
-
-**Using MailHog (Recommended for Testing)**
-
-MailHog is a local SMTP server with a web UI that captures all emails - perfect for development.
-
-**Install MailHog:**
-
-```bash
-# Using Homebrew (recommended)
-brew install mailhog
-
-# Or download binary from GitHub
-# https://github.com/mailhog/MailHog/releases
-```
-
-**Start MailHog:**
-
-```bash
-# Start MailHog (runs on ports 1025 for SMTP, 8025 for web UI)
-mailhog
-```
-
-MailHog will start and be available at:
-- **SMTP Server**: `localhost:1025` (no authentication needed)
-- **Web UI**: http://localhost:8025 (view all captured emails)
-
-**Configure Application:**
-
-Add to your `.env` file:
-```env
-MAIL_SERVER=localhost
-MAIL_PORT=1025
-MAIL_STARTTLS=False
-MAIL_SSL_TLS=False
-MAIL_USERNAME=
-MAIL_PASSWORD=
-MAIL_FROM=noreply@localhost
-```
-
-**Alternative: Using Docker**
-
-If you prefer Docker:
-```bash
-# Run MailHog in Docker
-docker run -d -p 1025:1025 -p 8025:8025 mailhog/mailhog
-
-# Or use docker-compose
-```
-
-**Alternative: macOS Built-in Postfix**
-
-macOS includes Postfix, but it's disabled by default. To enable:
-
-```bash
-# Enable Postfix
-sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.postfix.master.plist
-
-# Check status
-sudo postfix status
-
-# Configure for local delivery only
-sudo nano /etc/postfix/main.cf
-```
-
-Add/modify:
-```conf
-inet_interfaces = loopback-only
-mydestination = $myhostname, localhost.$mydomain, localhost
-```
-
-Restart:
-```bash
-sudo postfix reload
-```
-
-Then configure your app:
-```env
-MAIL_SERVER=localhost
-MAIL_PORT=25
-MAIL_STARTTLS=False
-MAIL_SSL_TLS=False
-MAIL_USERNAME=
-MAIL_PASSWORD=
-```
-
-**View Emails:**
-
-- **MailHog**: Open http://localhost:8025 in your browser
-- **Postfix**: Check `/var/mail/yourusername` or use `mail` command
-
-#### Option C: Self-Hosted SMTP Server (Linux)
-
-For development or self-hosted deployments on Linux servers:
-
-**Install Postfix (SMTP Server)**
-
-```bash
-# Update package list
-sudo apt update
-
-# Install Postfix (select "Internet Site" when prompted)
-sudo apt install postfix -y
-
-# Install mail utilities (optional, for testing)
-sudo apt install mailutils -y
-```
-
-**Configure Postfix for Relay**
-
-Edit the main configuration:
-```bash
-sudo nano /etc/postfix/main.cf
-```
-
-Key configuration options:
-```conf
-# Set your server's hostname
-myhostname = yourdomain.com
-
-# Network interfaces to listen on
-inet_interfaces = loopback-only
-
-# For relay through another SMTP server (optional)
-relayhost = [smtp.example.com]:587
-smtp_sasl_auth_enable = yes
-smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
-smtp_sasl_security_options = noanonymous
-smtp_tls_security_level = encrypt
-```
-
-If using relay with authentication, create credential file:
-```bash
-sudo nano /etc/postfix/sasl_passwd
-```
-
-Add relay credentials:
-```
-[smtp.example.com]:587 username:password
-```
-
-Secure and reload:
-```bash
-sudo chmod 600 /etc/postfix/sasl_passwd
-sudo postmap /etc/postfix/sasl_passwd
-sudo systemctl restart postfix
-```
-
-**Test Email Sending**
-
-```bash
-echo "Test email body" | mail -s "Test Subject" recipient@example.com
-```
-
-**Configure Application**
-
-For local Postfix:
-```env
-MAIL_SERVER=localhost
-MAIL_PORT=25
-MAIL_STARTTLS=False
-MAIL_SSL_TLS=False
-MAIL_USERNAME=
-MAIL_PASSWORD=
-```
-
-**Security Notes:**
-- Ensure your firewall allows outbound SMTP traffic (port 587 or 25)
-- Configure SPF, DKIM, and DMARC records for production email
-- Monitor `/var/log/mail.log` for email delivery issues
-- Consider using a dedicated email service for better deliverability
 
 ### 4. Run the Application
 
@@ -259,8 +86,14 @@ MAIL_PASSWORD=
 # Using uvicorn directly
 uvicorn src.main:app --reload
 
+# or -- using uv
+uv run uvicorn src.main:app --reload
+
 # Or specify host and port
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+# or -- using unv
+uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at:
