@@ -28,8 +28,8 @@ class EntryIngestionRequest(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "title": "Memory Entry - Brian meets Yoli",
-                    "text": "My name is Brian Gormanly...",
+                    "title": "Memory Entry - Indigo meets Tributary Labs",
+                    "text": "My name is Indigo Montoya ... and I am a software engineer at Tributary Labs ",
                     "labels": ["relationship", "origin-story"],
                     "source": "ios-app",
                     "metadata": {"user_id": "user-123"},
