@@ -1,1 +1,3 @@
-"""Graph module."""
+"""Graph module exports."""
+
+from .routers import router  # noqa: F401

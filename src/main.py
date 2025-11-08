@@ -9,6 +9,8 @@ from src.database.connection import neo4j_connection
 from src.auth.routes import router as auth_router
 from src.auth.dependencies import get_current_user
 from src.auth.models import User
+from src.graph.routers import router as graph_router
+from src.integrations.mcp.routers import router as mcp_router
 from src.exceptions.handlers import (
     AuthenticationError,
     InvalidTokenError,
@@ -74,6 +76,8 @@ app.add_exception_handler(UnauthorizedError, unauthorized_error_handler)
 
 # Include authentication routes
 app.include_router(auth_router)
+app.include_router(graph_router)
+app.include_router(mcp_router)
 
 
 # Root endpoint (public)

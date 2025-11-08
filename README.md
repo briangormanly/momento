@@ -125,3 +125,46 @@ The API will be available at:
 - Password never appears in URLs (stored hashed in JWT payload)
 - Verification links expire after configured time (24 hours default)
 - Expired verification records are automatically cleaned up
+
+### Graph & Memory Endpoints
+
+- `POST /graph/entries` - ingest a raw memory/note (text first, media soon). Extraction runs in the background.
+- `GET /graph/entities/{id}` - fetch a single entity (ENTRY, PERSON, LOCATION, etc.).
+- `GET /graph/entities` - basic listing with pagination.
+- `POST /graph/search/text` - lightweight substring search across entity names/summaries.
+- `POST /graph/search/semantic` - semantic search placeholder (currently proxies to text search until embeddings are plugged in).
+
+### MCP Connectors
+
+- `GET /mcp/connectors` - list registered external model connections.
+- `POST /mcp/connectors` - register a new connection for future MCP integrations (stored in-memory for now).
+
+## Graph Module Layout
+
+```
+src/graph/
+├── models.py              # Pydantic Entity/Relation + supporting value objects
+├── schemas.py             # Request/response objects for FastAPI
+├── repositories/          # Neo4j persistence helpers
+├── services/              # Entry ingestion, entity CRUD, search orchestration
+├── use_cases/             # Command/query use cases for routers + MCP
+├── providers/             # Extraction providers (local heuristic, Ollama, OpenAI, Anthropic)
+├── pipeline/              # Extraction runner + observers
+├── tasks/                 # Background task dispatchers
+└── routers.py             # FastAPI endpoints calling the use cases
+```
+
+A parallel `src/integrations/mcp/` package houses connector schemas/services/routes so model connections can enter through the same service layer in the future.
+
+## Configuration & Models
+
+See `.env.example` for exhaustive environment variables. Highlights:
+
+- `EXTRACTION_PROVIDER` controls which provider (local, ollama, openai, anthropic) powers entity extraction.
+- `EXTRACTION_ALLOW_FALLBACK` toggles whether we fall back to heuristics or fail fast when the provider response is invalid (defaults to `False` now, so failures surface immediately).
+- `EXTRACTION_CONTEXT_WINDOW_TOKENS` defines how much text is passed to the provider so you can align with each model's context window.
+- `OLLAMA_TIMEOUT_SECONDS`, `OLLAMA_MAX_RETRIES`, and `OLLAMA_KEEP_ALIVE` control long-running local model calls so you can keep a model warm and tolerate slower generations.
+- `OLLAMA_*`, `OPENAI_*`, `ANTHROPIC_*` variables hold connection info/keys for each provider.
+- `API_RATE_LIMIT_PER_MINUTE` and `ENABLE_AUDIT_LOGGING` prepare for future security hardening.
+
+The graph pipeline writes everything through the Pydantic models in `src/graph/models.py`, ensuring the FastAPI docs show rich examples (content blocks, attachments, embeddings, observations, etc.).
