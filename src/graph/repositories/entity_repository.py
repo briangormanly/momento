@@ -31,9 +31,21 @@ class EntityRepository:
     """ Upsert an entity into the graph. """
     def upsert(self, entity: Entity) -> Entity:
         payload = self._serialize_entity(entity)
+        # Ensure system labels are applied as Neo4j labels in addition to :Entity
+        # We use FOREACH with CASE to conditionally set labels from parameters.
         query = """
         MERGE (e:Entity {id: $entity.id})
         SET e = $entity
+        // Apply system labels as Neo4j labels
+        FOREACH (_ IN CASE WHEN 'ENTRY' IN $entity.system_labels THEN [1] ELSE [] END | SET e:ENTRY)
+        FOREACH (_ IN CASE WHEN 'ENTITY' IN $entity.system_labels THEN [1] ELSE [] END | SET e:ENTITY)
+        FOREACH (_ IN CASE WHEN 'PERSON' IN $entity.system_labels THEN [1] ELSE [] END | SET e:PERSON)
+        FOREACH (_ IN CASE WHEN 'LOCATION' IN $entity.system_labels THEN [1] ELSE [] END | SET e:LOCATION)
+        FOREACH (_ IN CASE WHEN 'ORGANIZATION' IN $entity.system_labels THEN [1] ELSE [] END | SET e:ORGANIZATION)
+        FOREACH (_ IN CASE WHEN 'OBJECT' IN $entity.system_labels THEN [1] ELSE [] END | SET e:OBJECT)
+        FOREACH (_ IN CASE WHEN 'EVENT' IN $entity.system_labels THEN [1] ELSE [] END | SET e:EVENT)
+        FOREACH (_ IN CASE WHEN 'CONCEPT' IN $entity.system_labels THEN [1] ELSE [] END | SET e:CONCEPT)
+        FOREACH (_ IN CASE WHEN 'OBSERVATION' IN $entity.system_labels THEN [1] ELSE [] END | SET e:OBSERVATION)
         RETURN e
         """
         with self.connection.get_session() as session:
@@ -52,6 +64,16 @@ class EntityRepository:
         UNWIND $entities AS entity
         MERGE (e:Entity {id: entity.id})
         SET e = entity
+        // Apply system labels as Neo4j labels
+        FOREACH (_ IN CASE WHEN 'ENTRY' IN entity.system_labels THEN [1] ELSE [] END | SET e:ENTRY)
+        FOREACH (_ IN CASE WHEN 'ENTITY' IN entity.system_labels THEN [1] ELSE [] END | SET e:ENTITY)
+        FOREACH (_ IN CASE WHEN 'PERSON' IN entity.system_labels THEN [1] ELSE [] END | SET e:PERSON)
+        FOREACH (_ IN CASE WHEN 'LOCATION' IN entity.system_labels THEN [1] ELSE [] END | SET e:LOCATION)
+        FOREACH (_ IN CASE WHEN 'ORGANIZATION' IN entity.system_labels THEN [1] ELSE [] END | SET e:ORGANIZATION)
+        FOREACH (_ IN CASE WHEN 'OBJECT' IN entity.system_labels THEN [1] ELSE [] END | SET e:OBJECT)
+        FOREACH (_ IN CASE WHEN 'EVENT' IN entity.system_labels THEN [1] ELSE [] END | SET e:EVENT)
+        FOREACH (_ IN CASE WHEN 'CONCEPT' IN entity.system_labels THEN [1] ELSE [] END | SET e:CONCEPT)
+        FOREACH (_ IN CASE WHEN 'OBSERVATION' IN entity.system_labels THEN [1] ELSE [] END | SET e:OBSERVATION)
         RETURN e
         """
         with self.connection.get_session() as session:
