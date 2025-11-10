@@ -28,6 +28,7 @@ class EntityRepository:
     def __init__(self):
         self.connection = neo4j_connection
 
+    """ Upsert an entity into the graph. """
     def upsert(self, entity: Entity) -> Entity:
         payload = self._serialize_entity(entity)
         query = """

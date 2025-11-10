@@ -108,16 +108,15 @@ class OllamaProvider(BaseExtractionProvider):
                - Ignore pronouns, stop words, months, or vague references ("he", "she", "it", "my", "december", etc.).
             2. Only the ENTRY node stores the full text; extracted entities must be concise (no long-form body).
             3. Each entity JSON object MUST include:
-               - "id": a UUID you invent (use RFC4122 format).
-               - "name": short canonical name.
+               - "name": short canonical name. Do NOT include an "id" field.
                - "system_labels": choose from ["PERSON","LOCATION","ORGANIZATION","OBJECT","EVENT","CONCEPT"].
                - "labels": include "extracted" plus any helpful tags (e.g. "relationship", "workplace").
                - "summary": 1-2 sentence description referencing facts from the entry.
                - "metadata": include at least {{"source_entry_id": "{entry_id}", "entity_type": "<type>"}}.
             4. Build "relations" that reflect the real relationships in the text.
                - Use uppercase snake_case relationType values like MENTIONED, WORKED_AT, MET_AT, LOCATED_IN.
-               - "source" must be "{entry_id}" when linking the original ENTRY to an extracted entity, or one entity UUID to another.
-               - "target" must reference the UUID of the other entity.
+               - When linking from the ENTRY to an extracted entity: set "source" to "{entry_id}" and "target" to that entity's exact "name".
+               - When linking between extracted entities: set both "source" and "target" to the exact "name" strings of the entities you output.
             5. Output JSON ONLY in the form:
                {{
                  "entities": [{{...}}, {{...}}],

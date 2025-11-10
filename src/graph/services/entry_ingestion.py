@@ -9,7 +9,7 @@ from fastapi import BackgroundTasks
 
 from src.common.logging import get_logger
 from src.config.settings import get_settings
-from src.graph.models import ContentBlock, Entity, SystemLabel
+from src.graph.models import ContentBlock, Entity, Relation, SystemLabel
 from src.graph.pipeline.extraction_runner import ExtractionPipeline
 from src.graph.providers.base import ExtractionResult
 from src.graph.repositories.entity_repository import EntityRepository
@@ -42,6 +42,7 @@ class EntryIngestionService:
         background_tasks: Optional[BackgroundTasks] = None,
         force_sync: bool = False,
     ) -> EntryIngestionResponse:
+        """ Ingest an entry into the graph. This contains the complete text of the entry """
         entry_entity = self._build_entry_entity(request)
         saved_entry = self.entity_repository.upsert(entry_entity)
 
@@ -84,7 +85,25 @@ class EntryIngestionService:
         if not result:
             logger.warning("Extraction pipeline returned no result; skipping persistence.")
             return
+        saved_entities = []
         if result.entities:
-            self.entity_repository.bulk_create(result.entities)
+            saved_entities = self.entity_repository.bulk_create(result.entities)
+
         if result.relations:
-            self.relation_repository.bulk_create(result.relations)
+            # Map relation endpoints from entity names to their persisted UUIDs when needed.
+            name_to_id = {e.name: str(e.id) for e in saved_entities if e.name}
+
+            def _resolve(endpoint: str) -> str:
+                # Keep entry IDs and already-UUID-like strings; fall back to name mapping.
+                return name_to_id.get(endpoint, endpoint)
+
+            mapped_relations: list[Relation] = []
+            for rel in result.relations:
+                mapped_relations.append(
+                    Relation(
+                        source=_resolve(rel.source),
+                        target=_resolve(rel.target),
+                        relationType=rel.relationType,
+                    )
+                )
+            self.relation_repository.bulk_create(mapped_relations)
